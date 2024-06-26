@@ -58,7 +58,7 @@ s = "hello world"
 
 ```
 
-![refcount1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/refcount1.png)
+![refcount1](refcount1.png)
 
 ```python3
 >>> s2 = s
@@ -69,7 +69,7 @@ s = "hello world"
 
 ```
 
-![refcount2](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/refcount2.png)
+![refcount2](refcount2.png)
 
 
 我们来 dis 一个脚本
@@ -225,7 +225,7 @@ class A:
 
 **a1** 和 **a2** 的引用计数都为 2
 
-![ref_cycle1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/ref_each1.png)
+![ref_cycle1](ref_each1.png)
 
 ```python3
 >>> del a1
@@ -235,7 +235,7 @@ class A:
 
 现在, 来自 local namespace 的引用被清除了, 但是他们自身都有一个来自对方的引用, 按照上面的过程 **a1**/**a2** 的引用计数是没办法变为 0 的
 
-![ref_cycle2](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/ref_each2.png)
+![ref_cycle2](ref_each2.png)
 
 ### example2
 
@@ -247,7 +247,7 @@ class A:
 
 ```
 
-![ref_cycle1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/ref_cycle1.png)
+![ref_cycle1](ref_cycle1.png)
 
 ```python3
 >>> del a
@@ -257,7 +257,7 @@ class A:
 来自 local namespace 的引用被清除了, **a** 的引用计数会变为 1, 也没有办法变为 0 进入释放流程
 
 
-![ref_cycle1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/ref_cycle2.png)
+![ref_cycle1](ref_cycle2.png)
 
 ## 分代回收机制
 
@@ -291,7 +291,7 @@ class A:
 
 **PyObject** 则是所有 python 对象都必须包含的基础部分
 
-![track](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/track.png)
+![track](track.png)
 
 当你创建一个 python 对象比如 `a = list()` 时, 类型为 **list**, 变量名为 **a** 的对象会被添加到 **generation0** 的尾部, 所以 **generation0** 可以追踪到所有通过解释器从 heap 空间分配的对象
 
@@ -311,7 +311,7 @@ CPython 总共使用了 3 代, 新创建的对象都会被存储到第一代中(
 
 当准备回收一个代的时候, 所有比这个代年轻的代都会被合并, 之后再回收
 
-![generation](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/generation.png)
+![generation](generation.png)
 
 ### update_refs
 
@@ -333,18 +333,18 @@ CPython 总共使用了 3 代, 新创建的对象都会被存储到第一代中(
 
 ```
 
-![update_ref1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/update_ref1.png)
+![update_ref1](update_ref1.png)
 
 第一步是把所有比 **generation1** 低的代和当前代合并, 把这个合并后的代叫做 **young**, 把比当前代年长一代的那一代叫做 **old**
 
-![young_old](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/young_old.png)
+![young_old](young_old.png)
 
 **update_refs** 会把所有 **young** 中对象的引用计数拷贝出来, 复制到对象上面的 **_gc_prev** 位置中,
 **_gc_prev** 的最右边两个 bit 被预留出来作为其他标记用, 所以拷贝的引用计数会左移两位后存储在 **_gc_prev** 上
 
 我下图表示的 `1 / 0x06` 意思是复制出的引用计数值为 1, 但是 **_gc_prev** 上实际存储的值为 `0x06`
 
-![update_ref2](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/update_ref2.png)
+![update_ref2](update_ref2.png)
 
 ### subtract_refs
 
@@ -352,7 +352,7 @@ CPython 总共使用了 3 代, 新创建的对象都会被存储到第一代中(
 
 这一步的目的是消除同一个代中对象间的引用, 消除完后, 剩下的引用计数都是来自代外的对象的引用计数
 
-![subtract_refs](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/subtract_refs.png)
+![subtract_refs](subtract_refs.png)
 
 ### move_unreachable
 
@@ -366,37 +366,37 @@ CPython 总共使用了 3 代, 新创建的对象都会被存储到第一代中(
 
 **generation** 中的第一个对象是 local **namespace**, 因为 **namespace** 对象的引用数 > 0, 它不能被回收, 所有 **namespace** 对象所引用到的对象也肯定是不能被回收的, 所以 `c` and `d2` 的 **_gc_prev** 值被设置为 `0x06`
 
-![move_unreachable1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable1.png)
+![move_unreachable1](move_unreachable1.png)
 
 第二个对象是 `a1`, 因为 `a1` 的复制引用计数值 <= 0, 所以它被移到了 **unreachable** 中
 
-![move_unreachable2](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable2.png)
+![move_unreachable2](move_unreachable2.png)
 
 `a2` 也一样
 
-![move_unreachable3](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable3.png)
+![move_unreachable3](move_unreachable3.png)
 
 `b` 的复制引用计数也 <= 0
 
-![move_unreachable4](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable4.png)
+![move_unreachable4](move_unreachable4.png)
 
 现在轮到了 `c`
 
 因为 `c` 的复制引用计数 > 0, 它会继续留在 **generation** 中, 并且 **_gc_prev** 会被重置(上面的 collecting 的 bit flag 会被清除)
 
-![move_unreachable5](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable5.png)
+![move_unreachable5](move_unreachable5.png)
 
 因为 `d1` 的复制引用计数 <= 0, 它被移动到 **unreachable**
 
-![move_unreachable6](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable6.png)
+![move_unreachable6](move_unreachable6.png)
 
 `d2` 的复制引用计数 > 0, `d2` 身上还有到 `d1` 的引用, 并且 `d1` 现在在 **unreachable** 中
 
-![move_unreachable7](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable7.png)
+![move_unreachable7](move_unreachable7.png)
 
 `d1` 的复制引用计数会被重置为 1, 并且移到 **generation** 这个链表的尾部
 
-![move_unreachable8](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable8.png)
+![move_unreachable8](move_unreachable8.png)
 
 下一个对象是 `d1`, 它的复制引用计数 > 0, 重置它的 **_gc_prev** 指针
 
@@ -404,7 +404,7 @@ CPython 总共使用了 3 代, 新创建的对象都会被存储到第一代中(
 
 剩下的所有在 **generation** 中的对象是存活的, 活过一轮垃圾回收的对象会被移动到更高一代中去
 
-![move_unreachable9](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/move_unreachable9.png)
+![move_unreachable9](move_unreachable9.png)
 
 ### finalizer
 
@@ -445,19 +445,19 @@ gc.collect()
 
 上面的代码在 **move_unreachable** 之后如下所示
 
-![finalize1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/finalize1.png)
+![finalize1](finalize1.png)
 
 step1, 所有 **unreachable** 中定义了自己的 finalizer 的对象, 这些个对象的 `__del__` 方法都会被调用
 
 在 `__del__` 调用后
 
-![finalize2](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/finalize2.png)
+![finalize2](finalize2.png)
 
 step2, 在 **unreachable** 里面做一次 **update_refs**
 
 注意, 这里 `b` **_gc_prev** 字段的第一个 bit 被置为 1 了, 表示它的 finalizer 已经被处理过了
 
-![finalize3](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/finalize3.png)
+![finalize3](finalize3.png)
 
 step3, 在 **unreachable** 里面做一次 **subtract_refs**
 
@@ -467,13 +467,13 @@ step3, 在 **unreachable** 里面做一次 **subtract_refs**
 
 如果没有, 则回收 **unreachable** 中的所有对象
 
-![finalize4](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/finalize4.png)
+![finalize4](finalize4.png)
 
 stp4, 把所有的 **unreachable** 中的对象移动到 **old** 代中
 
 在 step1 中, **unreachable** 中定义了 `__del__` 的对象的对应的 `__del__` 都会被调用, 并且所有的 **unreachable** 中的对象都会在当前这轮垃圾回收中存活
 
-![finalize5](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/finalize5.png)
+![finalize5](finalize5.png)
 
 在下一轮垃圾回收中, 对象 `a1` 和 `a2` 会被回收, 但是对象 `b` 的引用计数在下一轮的 **subtract_refs** 之后仍然是大于 0 的, 所以它不会被移到 **unreachable** 中
 
@@ -511,21 +511,21 @@ CPython 中一共有 3 代, 对应了 3 个 **threshold**, 每一代对应一个
 
 另一个方式是让解释器自己进行触发, 当你从 heap 申请空间创建一个新对象时, **generation0** 的数量是否超过 **threashold**, 如果超过, 进行垃圾回收, 如果没超过则创建成功, 返回
 
-![generation_trigger1](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/generation_trigger1.png)
+![generation_trigger1](generation_trigger1.png)
 
 `collect` 流程会从最老年代向最年轻代进行检查
 
 首先检查 **generation2**, **generation2** 的 count 比对应的 **threashold** 小
 
-![generation_trigger2](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/generation_trigger2.png)
+![generation_trigger2](generation_trigger2.png)
 
 之后检查 **generation1**, **generation1** 的 count 比对应的 **threashold** 大, 那么从 **generation1** 开始回收
 
-![generation_trigger3](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/generation_trigger3.png)
+![generation_trigger3](generation_trigger3.png)
 
 回收的时候会把所有比当前代年轻的代合并后, 再进行上面描述的回收步骤
 
-![generation_trigger4](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gc/generation_trigger4.png)
+![generation_trigger4](generation_trigger4.png)
 
 如果 gc 回收的是最年长的一代, 回收结束之前会把所有的 **free_list** 也一并释放, 如果你读过主页其他对象的文章比如 [list](https://github.com/zpoint/CPython-Internals/blob/master/BasicObject/list/list_cn.md) 或 [tuple](https://github.com/zpoint/CPython-Internals/blob/master/BasicObject/tuple/tuple_cn.md), 上面有 **free_list** 相关的作用
 
